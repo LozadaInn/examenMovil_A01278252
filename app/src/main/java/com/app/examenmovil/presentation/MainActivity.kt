@@ -22,8 +22,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.app.examenmovil.domain.model.Country
-import com.app.examenmovil.presentation.theme.ExamenMovilTheme // --> CAMBIO: Corregí el import, asegúrate que sea el tuyo.
+import com.app.examenmovil.presentation.theme.ExamenMovilTheme
 import com.tuspaquetes.AppModule
+
+private const val SELF_EXPLAINED_TEXT = "Arquitectura: MVVM + Clean\n\n" +
+    "Estrategia de guardado de preferencias: No pude implementarlo, mi idea era hacer una variable en data que almacenara el último país visitado, pero no pude implementarlo como se debe, ni siquiera con ayuda de IA.\n\n" +
+    "Estrategia de búsqueda: Cuando buscamos en la search bar, usamos el viewModel para llamar al caso de uso que busca países por nombre. Si el campo está vacío se carga la lista de países, si no, pasamos al repositorio el nombre que deseamos buscar y este" +
+        "se encarga de llamar a la API y devolver el resultado.\n\n"
 
 class MainActivity : ComponentActivity() {
 
@@ -80,6 +85,8 @@ fun CountryListScreen(
     val isLoading by viewModel.isLoading.observeAsState(initial = false)
     val error by viewModel.error.observeAsState(initial = null)
     var searchText by remember { mutableStateOf("") }
+    // Estado para mostrar/ocultar el diálogo de información
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -106,6 +113,11 @@ fun CountryListScreen(
                 ) {
                     Text("Buscar")
                 }
+                Spacer(modifier = Modifier.width(8.dp))
+                // Botón Info que muestra el diálogo con la constante
+                TextButton(onClick = { showInfoDialog = true }) {
+                    Text("Info")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -126,6 +138,19 @@ fun CountryListScreen(
                         onCountryClicked = onCountryClicked
                     )
                 }
+            }
+
+            if (showInfoDialog) {
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text("OK")
+                        }
+                    },
+                    title = { Text("Self-explained hook") },
+                    text = { Text(SELF_EXPLAINED_TEXT) }
+                )
             }
         }
     }
@@ -212,7 +237,7 @@ fun CountryDetailScreen(country: Country, onBackClicked: () -> Unit) {
                 title = { Text(text = country.nombreComun) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )

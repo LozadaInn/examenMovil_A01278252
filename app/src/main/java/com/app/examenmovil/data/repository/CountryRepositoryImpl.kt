@@ -19,4 +19,16 @@ class CountryRepositoryImpl(
             Result.failure(e)
         }
     }
+
+    override suspend fun getAllCountries(): Result<List<Country>> {
+        return try {
+            val requiredFields = "name,flags,capital,population,region"
+            val countryDtos = apiService.getAllCountries(requiredFields)
+            Result.success(
+                countryDtos.map { it.toDomain() }
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

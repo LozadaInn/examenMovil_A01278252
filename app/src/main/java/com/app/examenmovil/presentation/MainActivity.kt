@@ -26,7 +26,11 @@ class MainActivity : ComponentActivity() {
     // 1. INICIALIZAR EL VIEWMODEL
     // Usamos 'by viewModels' con nuestra Factory para crear una instancia del ViewModel.
     private val viewModel: CountryViewModel by viewModels {
-        CountryViewModelFactory(AppModule.getCountryByNameUseCase)
+        // Pasa los dos UseCases desde AppModule
+        CountryViewModelFactory(
+            AppModule.getAllCountriesUseCase, // <--- AÑADIR
+            AppModule.getCountryByNameUseCase
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -2,18 +2,21 @@ package com.app.examenmovil.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.app.examenmovil.domain.use_case.GetAllCountriesUseCase
 import com.app.examenmovil.domain.use_case.GetCountryByNameUseCase
 
 class CountryViewModelFactory(
-    private val useCase: GetCountryByNameUseCase
+    private val getAllCountriesUseCase: GetAllCountriesUseCase,
+    private val getCountryByNameUseCase: GetCountryByNameUseCase
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CountryViewModel::class.java)) {
-            // Si el sistema pide un CountryViewModel, creamos uno con el caso de uso que recibimos.
             @Suppress("UNCHECKED_CAST")
-            return CountryViewModel(useCase) as T
+            // 2. PASA AMBOS USE CASES
+            return CountryViewModel(getAllCountriesUseCase, getCountryByNameUseCase) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+

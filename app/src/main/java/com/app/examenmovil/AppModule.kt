@@ -3,6 +3,7 @@ package com.tuspaquetes
 import com.app.examenmovil.data.remote.ApiService
 import com.app.examenmovil.data.repository.CountryRepositoryImpl
 import com.app.examenmovil.domain.repository.CountryRepository
+import com.app.examenmovil.domain.use_case.GetAllCountriesUseCase
 import com.app.examenmovil.domain.use_case.GetCountryByNameUseCase
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
@@ -31,4 +32,6 @@ object AppModule {
     private val countryRepository: CountryRepository = CountryRepositoryImpl(apiService)
     // isntancia del caso de uso
     val getCountryByNameUseCase: GetCountryByNameUseCase = GetCountryByNameUseCase(countryRepository)
+
+    val getAllCountriesUseCase: GetAllCountriesUseCase = GetAllCountriesUseCase(countryRepository)
 }

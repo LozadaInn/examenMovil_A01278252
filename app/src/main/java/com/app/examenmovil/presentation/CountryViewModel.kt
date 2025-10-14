@@ -27,13 +27,13 @@ class CountryViewModel(
         loadAllCountries()
     }
 
-    private fun loadAllCountries() {
+    fun loadAllCountries() {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = getAllCountriesUseCase() // Usa el nuevo caso de uso
+            _error.value = null
+            val result = getAllCountriesUseCase()
             result.onSuccess { countryList ->
                 _countries.value = countryList
-                _error.value = null
             }.onFailure { throwable ->
                 _countries.value = emptyList()
                 _error.value = "Error al cargar la lista de países: ${throwable.message}"
@@ -42,20 +42,24 @@ class CountryViewModel(
         }
     }
     fun searchCountry(name: String) {
+        if (name.isBlank()) {
+            loadAllCountries()
+            return
+        }
+
         viewModelScope.launch {
-            _isLoading.value = true // Inicia la carga
+            _isLoading.value = true
+            _error.value = null
 
             val result = getCountryByNameUseCase(name)
 
             result.onSuccess { countryList ->
                 _countries.value = countryList
-                _error.value = null
             }.onFailure { throwable ->
-                _countries.value = emptyList() // Limpiamos la lista
-                _error.value = "Error: ${throwable.message}"
+                _countries.value = emptyList()
             }
 
-            _isLoading.value = false // Finaliza la carga
+            _isLoading.value = false
         }
     }
 }

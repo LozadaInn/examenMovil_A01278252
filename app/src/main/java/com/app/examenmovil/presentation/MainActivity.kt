@@ -38,25 +38,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ExamenMovilTheme {
-                // --> CAMBIO: Creamos un estado para saber qué país está seleccionado.
-                // Si es `null`, mostramos la lista. Si no, mostramos los detalles.
+                // Estado para gestionar la navegación simple: `null` para la lista, un objeto `Country` para el detalle.
                 var selectedCountry by remember { mutableStateOf<Country?>(null) }
 
-                // --> CAMBIO: Lógica para decidir qué pantalla mostrar.
+                // Lógica que decide qué pantalla mostrar
                 if (selectedCountry == null) {
-                    // Si no hay país seleccionado, muestra la pantalla de búsqueda y lista.
-                    CountrySearchScreen(
+                    // Si no hay país seleccionado, muestra la pantalla principal de búsqueda y lista.
+                    CountryListScreen(
                         viewModel = viewModel,
-                        // Al hacer clic, actualizamos el estado con el país seleccionado.
+                        // Cuando se hace clic en un país, actualizamos el estado para navegar al detalle.
                         onCountryClicked = { country ->
                             selectedCountry = country
                         }
                     )
                 } else {
-                    // Si hay un país seleccionado, muestra la pantalla de detalle.
+                    // Si se ha seleccionado un país, muestra la pantalla de detalle.
                     CountryDetailScreen(
-                        country = selectedCountry!!,
-                        // Para volver, simplemente ponemos el estado a null.
+                        country = selectedCountry!!, // Usamos '!!' porque sabemos que no es null en este bloque.
+                        // Para volver, simplemente reseteamos el estado a `null`.
                         onBackClicked = {
                             selectedCountry = null
                         }
@@ -67,12 +66,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// --> CAMBIO: La función ahora acepta una lambda `onCountryClicked`.
+
+/**
+ * Composable principal que contiene la barra de búsqueda y el contenedor del contenido (lista, carga o error).
+ */
 @Composable
-fun CountrySearchScreen(
+fun CountryListScreen(
     viewModel: CountryViewModel,
     onCountryClicked: (Country) -> Unit
 ) {
+    // Observamos los estados del ViewModel. Compose se redibujará cuando cambien.
     val countries by viewModel.countries.observeAsState(initial = emptyList())
     val isLoading by viewModel.isLoading.observeAsState(initial = false)
     val error by viewModel.error.observeAsState(initial = null)
@@ -84,8 +87,11 @@ fun CountrySearchScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Barra de búsqueda (sin cambios)
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            // Barra de búsqueda
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
@@ -94,53 +100,93 @@ fun CountrySearchScreen(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Button(onClick = { viewModel.searchCountry(searchText) }, enabled = !isLoading) {
+                Button(
+                    onClick = { viewModel.searchCountry(searchText) },
+                    enabled = !isLoading // El botón se deshabilita mientras está cargando
+                ) {
                     Text("Buscar")
                 }
             }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Contenido Principal
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (isLoading) {
-                    CircularProgressIndicator()
-                } else if (error != null) {
-                    Text(text = error!!, color = MaterialTheme.colorScheme.error)
-                } else {
-                    // --> CAMBIO: Pasamos la función `onCountryClicked` a la lista.
-                    CountryList(countries = countries, onCountryClicked = onCountryClicked)
+            // Contenedor principal que muestra Carga, Error o la Lista de países.
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    isLoading -> CircularProgressIndicator()
+                    error != null -> ErrorState(
+                        errorMessage = error!!,
+                        onRetry = { viewModel.loadAllCountries() }
+                    )
+                    else -> CountryListContent(
+                        countries = countries,
+                        onCountryClicked = onCountryClicked
+                    )
                 }
             }
         }
     }
 }
 
-// --> CAMBIO: La lista ahora acepta y pasa la función `onCountryClicked`.
+/**
+ * Composable que muestra el mensaje de error y un botón para reintentar la acción.
+ */
 @Composable
-fun CountryList(countries: List<Country>, onCountryClicked: (Country) -> Unit) {
+fun ErrorState(errorMessage: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Reintentar")
+        }
+    }
+}
+
+/**
+ * Composable que muestra la LazyColumn con la lista de países o un mensaje si la lista está vacía.
+ */
+@Composable
+fun CountryListContent(countries: List<Country>, onCountryClicked: (Country) -> Unit) {
     if (countries.isEmpty()) {
-        Text(text = "No se encontraron países. Realiza una búsqueda.")
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "No se encontraron países.")
+        }
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(countries) { country ->
-                // --> CAMBIO: Pasamos la función `onCountryClicked` a cada item.
                 CountryItem(country = country, onCountryClicked = onCountryClicked)
             }
         }
     }
 }
 
-// CountryItem ahora es clickeable.
-@OptIn(ExperimentalMaterial3Api::class) //Implementado con IA
+/**
+ * Composable para un único ítem de la lista (una tarjeta de país). Es clickeable.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CountryItem(country: Country, onCountryClicked: (Country) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        // Al hacer clic en la tarjeta, llamamos a la función con el país actual.
         onClick = { onCountryClicked(country) }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -150,12 +196,13 @@ fun CountryItem(country: Country, onCountryClicked: (Country) -> Unit) {
             Text(text = "Capital: ${country.capital}")
             Text(text = "Población: ${country.poblacion}")
             Text(text = "Región: ${country.region}")
-            Text(text = "Bandera: ${country.urlBandera}")
         }
     }
 }
 
-// Composable para la pantalla de detalle del país
+/**
+ * Composable para la pantalla de detalle del país. Muestra la bandera y más información.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CountryDetailScreen(country: Country, onBackClicked: () -> Unit) {
@@ -178,14 +225,14 @@ fun CountryDetailScreen(country: Country, onBackClicked: () -> Unit) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --> CAMBIO: Usamos AsyncImage de Coil para mostrar la bandera
+            // Muestra la imagen de la bandera usando Coil
             AsyncImage(
-                model = country.urlBandera, // La URL de la imagen
+                model = country.urlBandera,
                 contentDescription = "Bandera de ${country.nombreComun}",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp), // Damos una altura fija a la bandera
-                contentScale = ContentScale.Crop // Escala la imagen para que llene el espacio
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -199,20 +246,11 @@ fun CountryDetailScreen(country: Country, onBackClicked: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Capital: ${country.capital}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Text(text = "Capital: ${country.capital}", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Población: ${country.poblacion}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Text(text = "Población: ${country.poblacion}", style = MaterialTheme.typography.bodyLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Región: ${country.region}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                Text(text = "Región: ${country.region}", style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
